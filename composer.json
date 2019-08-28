@@ -1,0 +1,42 @@
+{
+  "name": "bridit/jsonapi-repository",
+  "description": "Call a JsonApi like you do on your orm repositories",
+  "keywords": [
+    "bridit",
+    "jsonapi",
+    "repository"
+  ],
+  "homepage": "https://github.com/bridit/jsonapi-repository",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Gustavo Siqueira",
+      "email": "gus@brid-it.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2",
+    "jakeasmith/http_build_url": "^1",
+    "nategood/httpful": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^8"
+  },
+  "autoload": {
+    "psr-4": {
+      "Bridit\\JsonApiRepository\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Bridit\\JsonApiRepository\\Tests\\": "tests"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}
