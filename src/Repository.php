@@ -11,6 +11,7 @@ use Httpful\Exception\ConnectionErrorException;
  * Class Repository
  * @package Bridit\JsonApiRepository
  * @method static getRepository(?string $uri = null, ?array $headers = null, ?bool $processResponse = true)
+ * @method static with($with)
  * @method static find($id)
  * @method static findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null)
  * @method static findOneBy(array $criteria, ?array $orderBy = null)
@@ -26,7 +27,7 @@ class Repository
   /**
    * @var array
    */
-  protected static $allowedMethods = ['getRepository', 'create', 'update', 'delete', 'restore', 'find', 'findBy', 'findOneBy', 'findAll'];
+  protected static $allowedMethods = ['getRepository', 'with', 'create', 'update', 'delete', 'restore', 'find', 'findBy', 'findOneBy', 'findAll'];
 
   /**
    * @var null|string
@@ -37,6 +38,11 @@ class Repository
    * @var null|array
    */
   protected $headers;
+
+  /**
+   * @var null|string|array
+   */
+  protected $with;
 
   /**
    * @var bool
@@ -138,6 +144,17 @@ class Repository
   }
 
   /**
+   * @param string|array $with
+   * @return $this
+   */
+  protected function doWith($with)
+  {
+    $this->with = is_array($with) ? $with : [$with];
+
+    return $this;
+  }
+
+  /**
    * @param string $method
    * @param string $uri
    * @param array $params
@@ -150,7 +167,8 @@ class Repository
     switch (strtolower($method))
     {
       case 'get':
-        $this->response = Request::get(http_build_url($uri, ["query" => http_build_query($params)], HTTP_URL_JOIN_QUERY))->send();
+        $query = $this->with === null ? $params : array_merge(['include' => implode(',', $this->with)], $params);
+        $this->response = Request::get(http_build_url($uri, ["query" => http_build_query($query)], HTTP_URL_JOIN_QUERY))->send();
         break;
       case 'post':
         $this->response = Request::post($uri, $params)->send();
