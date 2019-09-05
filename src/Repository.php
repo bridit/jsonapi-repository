@@ -171,11 +171,14 @@ class Repository
         $this->response = Request::get(http_build_url($uri, ["query" => http_build_query($query)], HTTP_URL_JOIN_QUERY))->send();
         break;
       case 'post':
+        $params = is_array($params) ? json_encode($params) : $params;
         $this->response = Request::post($uri, $params)->send();
         break;
       case 'put':
+        $params = is_array($params) ? json_encode($params) : $params;
         $this->response = Request::put($uri, $params)->send();
       case 'patch':
+        $params = is_array($params) ? json_encode($params) : $params;
         $this->response = Request::patch($uri, $params)->send();
         break;
       case 'delete':
