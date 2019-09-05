@@ -308,7 +308,11 @@ class Repository
     $query = [];
 
     if ($criteria !== null && $criteria !== []) {
-      $query['filter'] = $criteria;
+      $query['filter'] = array_map(function ($item) {
+        return is_array($item)
+          ? implode(',', $item)
+          : $item;
+      }, $criteria);
     }
 
     if ($orderBy !== null) {
