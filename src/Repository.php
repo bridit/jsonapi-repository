@@ -211,7 +211,13 @@ class Repository
   {
     $uri = $this->getUri();
 
-    return $this->doRequest('post', $uri, $params);
+    $response = $this->doRequest('post', $uri, $params);
+
+    if (is_object($response) && property_exists($response->body, 'errors')) {
+      return $response->body;
+    }
+
+    return $response;
   }
 
   /**
@@ -224,7 +230,13 @@ class Repository
   {
     $uri = $this->getUri(). '/' . $id;
 
-    return $this->doRequest('put', $uri, $params);
+    $response = $this->doRequest('put', $uri, $params);
+
+    if (is_object($response) && property_exists($response->body, 'errors')) {
+      return $response->body;
+    }
+
+    return $response;
   }
 
   /**
@@ -236,7 +248,13 @@ class Repository
   {
     $uri = $this->getUri() . '/' . $id;
 
-    return $this->doRequest('delete', $uri);
+    $response = $this->doRequest('delete', $uri);
+
+    if (is_object($response) && property_exists($response->body, 'errors')) {
+      return $response->body;
+    }
+
+    return $response;
   }
 
   /**
@@ -248,7 +266,13 @@ class Repository
   {
     $uri = $this->getUri() . '/' . $id . '/restore';
 
-    return $this->doRequest('put', $uri);
+    $response = $this->doRequest('put', $uri);
+
+    if (is_object($response) && property_exists($response->body, 'errors')) {
+      return $response->body;
+    }
+
+    return $response;
   }
 
   /**
@@ -306,7 +330,13 @@ class Repository
       $query['page']['offset'] = $offset;
     }
 
-    return $this->doRequest('get', $this->getUri(), $query);
+    $response = $this->doRequest('get', $this->getUri(), $query);
+
+    if (is_object($response) && property_exists($response->body, 'errors')) {
+      return $response->body;
+    }
+
+    return $response;
   }
 
   /**
@@ -319,7 +349,13 @@ class Repository
    */
   protected function doFindOneBy(array $criteria, ?array $orderBy = null)
   {
-    return $this->doFindBy($criteria, $orderBy, 1);
+    $response = $this->doFindBy($criteria, $orderBy, 1);
+
+    if (is_object($response) && property_exists($response, 'errors')) {
+      return $response;
+    }
+
+    return is_array($response) && isset($response[0]) ? $response[0] : null;
   }
 
   /**
