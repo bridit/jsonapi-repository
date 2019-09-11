@@ -216,7 +216,7 @@ class Repository
 
     $response = $this->doRequest('post', $uri, $params);
 
-    if (is_object($response) && property_exists($response->body, 'errors')) {
+    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
       return $response->body;
     }
 
@@ -235,7 +235,7 @@ class Repository
 
     $response = $this->doRequest('put', $uri, $params);
 
-    if (is_object($response) && property_exists($response->body, 'errors')) {
+    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
       return $response->body;
     }
 
@@ -253,7 +253,7 @@ class Repository
 
     $response = $this->doRequest('delete', $uri);
 
-    if (is_object($response) && property_exists($response->body, 'errors')) {
+    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
       return $response->body;
     }
 
@@ -271,7 +271,7 @@ class Repository
 
     $response = $this->doRequest('put', $uri);
 
-    if (is_object($response) && property_exists($response->body, 'errors')) {
+    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
       return $response->body;
     }
 
