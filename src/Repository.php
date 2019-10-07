@@ -362,7 +362,7 @@ class Repository
       return $response;
     }
 
-    return is_array($response) && isset($response[0]) ? $response[0] : null;
+    return is_array($response) && isset($response['data'][0]) ? $response['data'][0] : null;
   }
 
   /**
