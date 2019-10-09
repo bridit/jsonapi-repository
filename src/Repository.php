@@ -5,12 +5,14 @@ namespace Bridit\JsonApiRepository;
 use Exception;
 use Httpful\Mime;
 use Httpful\Request;
+use ReflectionClass;
 use Httpful\Exception\ConnectionErrorException;
+use Bridit\JsonApiDeserializer\JsonApiDeserializer;
 
 /**
  * Class Repository
  * @package Bridit\JsonApiRepository
- * @method static getRepository(?string $uri = null, ?array $headers = null, ?bool $processResponse = true)
+ * @method static getRepository(?string $uri = null, ?array $headers = null, ?bool $entityResponse = true)
  * @method static with($with)
  * @method static find($id)
  * @method static findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null)
@@ -47,7 +49,17 @@ class Repository
   /**
    * @var bool
    */
-  protected $processResponse = true;
+  protected $fullResponse = false;
+
+  /**
+   * @var mixed
+   */
+  protected $entityDeserializer;
+
+  /**
+   * @var bool
+   */
+  protected $entityResponse = false;
 
   /**
    * Response with parsed results
@@ -61,6 +73,8 @@ class Repository
   public function __construct()
   {
     $this->setRequestTemplate();
+
+    $this->entityDeserializer = JsonApiDeserializer::class;
   }
 
   /**
@@ -123,22 +137,87 @@ class Repository
   /**
    * @return bool|null
    */
-  protected function mustProcessResponse(): ?bool
+  public function getFullResponse(): ?bool
   {
-    return $this->processResponse;
+    return $this->fullResponse;
+  }
+
+  /**
+   * @param bool $fullResponse
+   * @return void
+   */
+  public function setFullResponse(bool $fullResponse): void
+  {
+    $this->fullResponse = $fullResponse;
+  }
+
+  /**
+   * @return self
+   */
+  public function withFullResponse(): self
+  {
+    $this->fullResponse = true;
+
+    return $this;
+  }
+
+  /**
+   * @return bool|null
+   */
+  public function getEntityResponse(): ?bool
+  {
+    return $this->entityResponse;
+  }
+
+  /**
+   * @param bool $entityResponse
+   * @return void
+   */
+  public function setEntityResponse(bool $entityResponse): void
+  {
+    $this->entityResponse = $entityResponse;
+  }
+
+  /**
+   * @return self
+   */
+  public function asEntity(): self
+  {
+    $this->entityResponse = true;
+
+    return $this;
+  }
+
+  /**
+   * @return self
+   */
+  public function asJsonApi(): self
+  {
+    $this->entityResponse = false;
+
+    return $this;
+  }
+
+  /**
+   * @param $deserializer
+   * @return $this
+   */
+  public function withDeserializer($deserializer): self
+  {
+    $this->entityDeserializer = $deserializer;
+
+    return $this;
   }
 
   /**
    * @param string|null $uri
    * @param array|null $headers
-   * @param bool|null $processResponse
    * @return $this
    */
-  protected function doGetRepository(?string $uri = null, ?array $headers = null, ?bool $processResponse = true)
+  protected function doGetRepository(?string $uri = null, ?array $headers = null)
   {
     $this->uri = $uri;
     $this->headers = $headers;
-    $this->processResponse = $processResponse;
 
     return $this;
   }
@@ -189,20 +268,89 @@ class Repository
         break;
     }
 
-    return $this->mustProcessResponse() === true ? $this->processResponse() : $this->response;
+    return $this->getEntityResponse() ? $this->returnEntity() : $this->returnJsonApi();
+  }
+
+  /**
+   * @throws \Bridit\JsonApiRepository\HttpException
+   * @throws \ReflectionException
+   */
+  protected function throwException()
+  {
+    $hasValidationErrors = isset($this->response->body) && isset($this->response->body->errors);
+
+    if (substr((string) $this->response->code, 0, 1) === '2' || $hasValidationErrors) {
+      return;
+    }
+
+    throw new HttpException('', $this->response->code, $this->getException());
+  }
+
+  /**
+   * @return Exception
+   * @throws \ReflectionException
+   */
+  protected function getException(): \Exception
+  {
+    $e = new Exception($this->response->body->message, $this->response->code);
+    $reflection = new ReflectionClass($e);
+
+    $trace = json_decode(json_encode($this->response->body->trace), true);
+    $prop = $reflection->getProperty('trace');
+    $prop->setAccessible('true');
+    $prop->setValue($e, $trace);
+    $prop->setAccessible('false');
+
+    return $e;
   }
 
   /**
    * @return mixed
    * @throws Exception
    */
-  protected function processResponse()
+  protected function returnJsonApi()
   {
-    if (substr((string) $this->response->code, 0, 1) === '2') {
-      return isset($this->response->body->data) ? $this->response->body->data : $this->response->body;
+    $this->throwException();
+
+    return $this->getFullResponse() ?  $this->response : $this->response->body;
+  }
+
+  /**
+   * @return mixed
+   * @throws Exception
+   */
+  protected function returnEntity()
+  {
+    $this->throwException();
+
+    if ($this->getFullResponse()) {
+      return $this->response;
     }
 
-    throw new Exception(json_encode($this->response->body), $this->response->code);
+    if (!is_object($this->response) || !property_exists($this->response, 'body') || !property_exists($this->response->body, 'data')) {
+      return $this->response->body;
+    }
+
+    $response = (array)  $this->entityDeserializer::deserialize($this->response->body);
+
+    return isset($response['id'])
+      ? $this->getEntityAttributes($response)
+      : array_map(function($item) {
+        return $this->getEntityAttributes($item);
+      }, $response);
+  }
+
+  protected function getEntityAttributes($entity)
+  {
+    $entity = (array) $entity;
+    $relationships = isset($entity['relationships']) ? (array) $entity['relationships'] : [];
+    $entity = array_merge(['id' => $entity['id']], (array) $entity['attributes']);
+
+    if (!empty($relationships)) {
+      $entity = array_merge($entity, ['relationships' => $relationships]);
+    }
+
+    return (object) $entity;
   }
 
   /**
@@ -212,15 +360,7 @@ class Repository
    */
   protected function doCreate(array $params)
   {
-    $uri = $this->getUri();
-
-    $response = $this->doRequest('post', $uri, $params);
-
-    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
-      return $response->body;
-    }
-
-    return $response;
+    return $this->doRequest('post', $this->getUri(), $params);
   }
 
   /**
@@ -233,13 +373,7 @@ class Repository
   {
     $uri = $this->getUri(). '/' . $id;
 
-    $response = $this->doRequest('put', $uri, $params);
-
-    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
-      return $response->body;
-    }
-
-    return $response;
+    return $this->doRequest('put', $uri, $params);
   }
 
   /**
@@ -251,31 +385,7 @@ class Repository
   {
     $uri = $this->getUri() . '/' . $id;
 
-    $response = $this->doRequest('delete', $uri);
-
-    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
-      return $response->body;
-    }
-
-    return $response;
-  }
-
-  /**
-   * @param $id
-   * @return object|null
-   * @throws ConnectionErrorException
-   */
-  protected function doRestore($id)
-  {
-    $uri = $this->getUri() . '/' . $id . '/restore';
-
-    $response = $this->doRequest('put', $uri);
-
-    if (is_object($response) && property_exists($response, 'body') && property_exists($response->body, 'errors')) {
-      return $response->body;
-    }
-
-    return $response;
+    return $this->doRequest('delete', $uri);
   }
 
   /**
@@ -312,9 +422,7 @@ class Repository
 
     if ($criteria !== null && $criteria !== []) {
       $query['filter'] = array_map(function ($item) {
-        return is_array($item)
-          ? implode(',', $item)
-          : $item;
+        return is_array($item) ? implode(',', $item) : $item;
       }, $criteria);
     }
 
@@ -337,13 +445,7 @@ class Repository
       $query['page']['offset'] = $offset;
     }
 
-    $response = $this->doRequest('get', $this->getUri(), $query);
-
-    if (is_object($response) && property_exists($response->body, 'errors')) {
-      return $response->body;
-    }
-
-    return $response;
+    return $this->doRequest('get', $this->getUri(), $query);
   }
 
   /**
@@ -362,7 +464,11 @@ class Repository
       return $response;
     }
 
-    return is_array($response) && isset($response[0]) ? $response[0] : null;
+    if (is_object($response) && property_exists($response, 'data')) {
+      return ['data' => is_array($response->data) && isset($response->data[0]) ? $response->data[0] : $response->data];
+    }
+
+    return isset($response[0]) ? $response[0] : $response;
   }
 
   /**
