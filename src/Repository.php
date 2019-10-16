@@ -243,6 +243,8 @@ class Repository
   protected function doRequest(string $method, string $uri, array $params = [])
   {
 
+    $this->setRequestTemplate();
+
     switch (strtolower($method))
     {
       case 'get':
