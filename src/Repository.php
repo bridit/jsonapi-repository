@@ -258,6 +258,7 @@ class Repository
       case 'put':
         $params = is_array($params) ? json_encode($params) : $params;
         $this->response = Request::put($uri, $params)->send();
+        break;
       case 'patch':
         $params = is_array($params) ? json_encode($params) : $params;
         $this->response = Request::patch($uri, $params)->send();
