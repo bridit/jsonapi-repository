@@ -249,22 +249,23 @@ class Repository
     {
       case 'get':
         $query = $this->with === null ? $params : array_merge(['include' => implode(',', $this->with)], $params);
-        $this->response = Request::get(http_build_url($uri, ["query" => http_build_query($query)], HTTP_URL_JOIN_QUERY))->send();
+        $uri = urldecode(http_build_url($uri, ["query" => http_build_query($query)], HTTP_URL_JOIN_QUERY)));
+        $this->response = Request::get($uri)->send();
         break;
       case 'post':
         $params = is_array($params) ? json_encode($params) : $params;
-        $this->response = Request::post($uri, $params)->send();
+        $this->response = Request::post(urldecode($uri), $params)->send();
         break;
       case 'put':
         $params = is_array($params) ? json_encode($params) : $params;
-        $this->response = Request::put($uri, $params)->send();
+        $this->response = Request::put(urldecode($uri), $params)->send();
         break;
       case 'patch':
         $params = is_array($params) ? json_encode($params) : $params;
-        $this->response = Request::patch($uri, $params)->send();
+        $this->response = Request::patch(urldecode($uri), $params)->send();
         break;
       case 'delete':
-        $this->response = Request::delete($uri)->send();
+        $this->response = Request::delete(urldecode($uri))->send();
         break;
       default:
         $this->response = null;
