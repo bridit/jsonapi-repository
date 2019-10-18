@@ -249,7 +249,7 @@ class Repository
     {
       case 'get':
         $query = $this->with === null ? $params : array_merge(['include' => implode(',', $this->with)], $params);
-        $uri = urldecode(http_build_url($uri, ["query" => http_build_query($query)], HTTP_URL_JOIN_QUERY)));
+        $uri = urldecode(http_build_url($uri, ["query" => http_build_query($query)], HTTP_URL_JOIN_QUERY));
         $this->response = Request::get($uri)->send();
         break;
       case 'post':
