@@ -228,7 +228,7 @@ class Repository
    */
   protected function doWith($with)
   {
-    $this->with = is_array($with) ? $with : [$with];
+    $this->with = is_array($with) ? $with : explode(',', $with);
 
     return $this;
   }
