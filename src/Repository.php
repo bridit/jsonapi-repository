@@ -14,6 +14,7 @@ use Bridit\JsonApiDeserializer\JsonApiDeserializer;
  * @package Bridit\JsonApiRepository
  * @method static getRepository(?string $uri = null, ?array $headers = null, ?bool $entityResponse = true)
  * @method static with($with)
+ * @method static asEntity()
  * @method static find($id)
  * @method static findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null)
  * @method static findOneBy(array $criteria, ?array $orderBy = null)
@@ -29,7 +30,7 @@ class Repository
   /**
    * @var array
    */
-  protected static $allowedMethods = ['getRepository', 'with', 'create', 'update', 'delete', 'restore', 'find', 'findBy', 'findOneBy', 'findAll'];
+  protected static $allowedMethods = ['getRepository', 'with', 'create', 'update', 'delete', 'restore', 'find', 'findBy', 'findOneBy', 'findAll', 'asEntity'];
 
   /**
    * @var null|string
@@ -181,7 +182,7 @@ class Repository
   /**
    * @return self
    */
-  public function asEntity(): self
+  public function doAsEntity(): self
   {
     $this->entityResponse = true;
 
