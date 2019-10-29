@@ -300,7 +300,9 @@ class Repository
     $e = new Exception($this->response->body->message, $this->response->code);
     $reflection = new ReflectionClass($e);
 
-    $trace = json_decode(json_encode($this->response->body->trace), true);
+    $trace = isset($this->response->body->trace) && !empty($this->response->body->trace)
+      ? json_decode(json_encode($this->response->body->trace), true)
+      : [];
     $prop = $reflection->getProperty('trace');
     $prop->setAccessible('true');
     $prop->setValue($e, $trace);
