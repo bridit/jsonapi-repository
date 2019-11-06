@@ -108,6 +108,8 @@ class Repository
 
   protected function setRequestTemplate()
   {
+    Request::resetIni();
+
     $template = Request::init()
       ->expectsJson()
       ->sendsType(Mime::JSON);
