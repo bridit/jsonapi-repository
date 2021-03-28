@@ -15,8 +15,8 @@
     }
   ],
   "require": {
-    "php": "^7.2",
-    "bridit/jsonapi-deserializer": "^1.0",
+    "php": "^7.2|^8.0",
+    "bridit/jsonapi-deserializer": "^1.1",
     "jakeasmith/http_build_url": "^1",
     "nategood/httpful": "*"
   },
